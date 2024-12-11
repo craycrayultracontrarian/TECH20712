@@ -6,7 +6,7 @@ les données d'interventions et générer des rapports. Cela permet d'identifier
 d'optimiser la prise de décision, et d'améliorer la gestion des ressources.
 */
 
-
+/*
 -- reminder: change the comments into french before submission
 USE master;
 GO
@@ -18,11 +18,15 @@ BEGIN
     DROP DATABASE SPVM;
 END;
 GO
+*/
 
+
+/*
+GO
 DROP DATABASE IF EXISTS SPVM;
+GO
 CREATE DATABASE SPVM;
 GO
-
 USE SPVM;
 GO
 
@@ -191,6 +195,7 @@ CREATE TABLE ENTITÉ
 );
 
 
+
 -- Here we will detail our triggers to ensure there is no inheritance between the other tables
 -- we're concerned with the following tables: Entité, Ville, Arrondissement, Division Administrative and Quartier
 -- we want to make sure that the primary key of what we're trying to insert doesn't exist elsewhere
@@ -210,10 +215,13 @@ CREATE TABLE ENTITÉ
 -- so how will we actually check it? 
 
 -- Entité 
+*/
+GO
+USE SPVM;
+GO
 DROP TRIGGER IF EXISTS dbo.ENTITÉ_TRIGGER;
 GO
-
-CREATE TRIGGER ENTITÉ_TRIGGER ON ENTITÉ AFTER INSERT
+CREATE TRIGGER dbo.ENTITÉ_TRIGGER ON ENTITÉ AFTER INSERT
 AS
 BEGIN
     DECLARE @ID_TOCHECK NVARCHAR(30);
@@ -244,9 +252,166 @@ BEGIN
         IF @STATUS = 1
             BEGIN
                 PRINT('clé [ID_ENTITÉ = '+@ID_TOCHECK+'] pour nouvel "ENTITÉ" déjà utilisée ailleurs (Table '+@SOURCE+'). Insertion dans "ENTITÉ" impossible.');
+				ROLLBACK TRANSACTION;
             END
 	END;
 END;
 GO
 
---INSERT INTO ENTITÉ (ID_ENTITÉ, ID_VILLE, [DESCRIPTION], NOM_CODE) VALUES (	'66112',	'66023',	'desc',	'idk');
+-- Ville
+DROP TRIGGER IF EXISTS dbo.VILLE_TRIGGER;
+GO
+CREATE TRIGGER dbo.VILLE_TRIGGER ON VILLE AFTER INSERT
+AS
+BEGIN
+    DECLARE @ID_TOCHECK NVARCHAR(30);
+    DECLARE @SOURCE NVARCHAR(30);
+    DECLARE @STATUS INT; -- If 1, the insertion is flawed and we need to print our error. If 0: all good.
+    SET @ID_TOCHECK = (SELECT ID_VILLE FROM INSERTED);
+    BEGIN
+    	IF EXISTS (SELECT NUM_QUARTIER FROM QUARTIER WHERE NUM_QUARTIER = @ID_TOCHECK)
+            BEGIN
+                SET @STATUS = 1
+                SET @SOURCE = 'QUARTIER'
+            END
+        ELSE IF EXISTS (SELECT ID_ENTITÉ FROM ENTITÉ WHERE ID_ENTITÉ = @ID_TOCHECK)
+            BEGIN
+                SET @STATUS = 1
+                SET @SOURCE = 'ENTITÉ'
+            END
+        ELSE IF EXISTS (SELECT ID_ARRONDISSEMENT FROM ARRONDISSEMENT WHERE ID_ARRONDISSEMENT = @ID_TOCHECK)
+            BEGIN
+                SET @STATUS = 1
+                SET @SOURCE = 'ARRONDISSEMENT'
+            END
+        ELSE
+            BEGIN
+                SET @STATUS = 0
+            END
+
+        IF @STATUS = 1
+            BEGIN
+                PRINT('clé [ID_VILLE = '+@ID_TOCHECK+'] pour nouvel "VILLE" déjà utilisée ailleurs (Table '+@SOURCE+'). Insertion dans "VILLE" impossible.');
+				ROLLBACK TRANSACTION;
+            END
+	END;
+END;
+GO
+
+-- Arrondissement
+DROP TRIGGER IF EXISTS dbo.ARRONDISSEMENT_TRIGGER;
+GO
+CREATE TRIGGER dbo.ARRONDISSEMENT_TRIGGER ON ARRONDISSEMENT AFTER INSERT
+AS
+BEGIN
+    DECLARE @ID_TOCHECK NVARCHAR(30);
+    DECLARE @SOURCE NVARCHAR(30);
+    DECLARE @STATUS INT; -- If 1, the insertion is flawed and we need to print our error. If 0: all good.
+    SET @ID_TOCHECK = (SELECT ID_ARRONDISSEMENT FROM INSERTED);
+    BEGIN
+    	IF EXISTS (SELECT NUM_QUARTIER FROM QUARTIER WHERE NUM_QUARTIER = @ID_TOCHECK)
+            BEGIN
+                SET @STATUS = 1
+                SET @SOURCE = 'QUARTIER'
+            END
+        ELSE IF EXISTS (SELECT ID_VILLE FROM VILLE WHERE ID_VILLE = @ID_TOCHECK)
+            BEGIN
+                SET @STATUS = 1
+                SET @SOURCE = 'VILLE'
+            END
+        ELSE IF EXISTS (SELECT ID_ENTITÉ FROM ENTITÉ WHERE ID_ENTITÉ = @ID_TOCHECK)
+            BEGIN
+                SET @STATUS = 1
+                SET @SOURCE = 'ENTITÉ'
+            END
+        ELSE
+            BEGIN
+                SET @STATUS = 0
+            END
+
+        IF @STATUS = 1
+            BEGIN
+                PRINT('clé [ID_ARRONDISSEMENT = '+@ID_TOCHECK+'] pour nouvel "ARRONDISSEMENT" déjà utilisée ailleurs (Table '+@SOURCE+'). Insertion dans "ARRONDISSEMENT" impossible.');
+				ROLLBACK TRANSACTION;
+            END
+	END;
+END;
+GO
+-- Division Administrative
+DROP TRIGGER IF EXISTS dbo.ENTITÉ_DIVISION_ADMINISTRATIVE;
+GO
+CREATE TRIGGER dbo.ENTITÉ_DIVISION_ADMINISTRATIVE ON DIVISION_ADMINISTRATIVE AFTER INSERT
+AS
+BEGIN
+    DECLARE @ID_TOCHECK NVARCHAR(30);
+    DECLARE @SOURCE NVARCHAR(30);
+    DECLARE @STATUS INT; -- If 1, the insertion is flawed and we need to print our error. If 0: all good.
+    SET @ID_TOCHECK = (SELECT ID_DIVISION FROM INSERTED);
+    BEGIN
+    	IF EXISTS (SELECT NUM_QUARTIER FROM QUARTIER WHERE NUM_QUARTIER = @ID_TOCHECK)
+            BEGIN
+                SET @STATUS = 1
+                SET @SOURCE = 'QUARTIER'
+            END
+        ELSE
+            BEGIN
+                SET @STATUS = 0
+            END
+
+        IF @STATUS = 1
+            BEGIN
+                PRINT('clé [ID_DIVISION = '+@ID_TOCHECK+'] pour nouvel "DIVISION_ADMINISTRATIVE" déjà utilisée ailleurs (Table '+@SOURCE+'). Insertion dans "DIVISION_ADMINISTRATIVE" impossible.');
+				ROLLBACK TRANSACTION;
+            END
+	END;
+END;
+GO
+-- Quartier
+SELECT * FROM QUARTIER
+DROP TRIGGER IF EXISTS dbo.QUARTIER_TRIGGER;
+GO
+CREATE TRIGGER dbo.QUARTIER ON QUARTIER AFTER INSERT
+AS
+BEGIN
+    DECLARE @ID_TOCHECK NVARCHAR(30);
+    DECLARE @SOURCE NVARCHAR(30);
+    DECLARE @STATUS INT; -- If 1, the insertion is flawed and we need to print our error. If 0: all good.
+    SET @ID_TOCHECK = (SELECT NUM_QUARTIER FROM INSERTED);
+    BEGIN
+		IF EXISTS (SELECT ID_ENTITÉ FROM ENTITÉ WHERE ID_ENTITÉ = @ID_TOCHECK)
+            BEGIN
+                SET @STATUS = 1
+                SET @SOURCE = 'ENTITÉ'
+            END
+        ELSE IF EXISTS (SELECT ID_VILLE FROM VILLE WHERE ID_VILLE = @ID_TOCHECK)
+            BEGIN
+                SET @STATUS = 1
+                SET @SOURCE = 'VILLE'
+            END
+        ELSE IF EXISTS (SELECT ID_ARRONDISSEMENT FROM ARRONDISSEMENT WHERE ID_ARRONDISSEMENT = @ID_TOCHECK)
+            BEGIN
+                SET @STATUS = 1
+                SET @SOURCE = 'ARRONDISSEMENT'
+            END
+		ELSE IF EXISTS (SELECT ID_DIVISION FROM DIVISION_ADMINISTRATIVE WHERE ID_DIVISION = @ID_TOCHECK)
+            BEGIN
+                SET @STATUS = 1
+                SET @SOURCE = 'DIVISION_ADMINISTRATIVE'
+            END
+        ELSE
+            BEGIN
+                SET @STATUS = 0
+            END
+
+        IF @STATUS = 1
+            BEGIN
+                PRINT('clé [NUM_QUARTIER = '+@ID_TOCHECK+'] pour nouvel "QUARTIER" déjà utilisée ailleurs (Table '+@SOURCE+'). Insertion dans "QUARTIER" impossible.');
+				ROLLBACK TRANSACTION;
+            END
+	END;
+END;
+GO
+
+
+-- reste juste question 5 maintenant. C'est la seule qui dépend d'une autre question SMH
+
