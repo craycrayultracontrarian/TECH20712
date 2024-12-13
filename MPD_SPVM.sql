@@ -412,6 +412,3 @@ BEGIN
 END;
 GO
 
-
--- reste juste question 5 maintenant. C'est la seule qui dépend d'une autre question SMH
-
