@@ -6,22 +6,22 @@ les données d'interventions et générer des rapports. Cela permet d'identifier
 d'optimiser la prise de décision, et d'améliorer la gestion des ressources.
 */
 
-/*
--- reminder: change the comments into french before submission
+
 USE master;
 GO
 
--- Forcefully drop the database if it exists
+-- Abandon forcé de la base de données si elle existe
+
 IF DB_ID('SPVM') IS NOT NULL
 BEGIN
     ALTER DATABASE SPVM SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
     DROP DATABASE SPVM;
 END;
 GO
-*/
 
 
-/*
+
+
 GO
 DROP DATABASE IF EXISTS SPVM;
 GO
@@ -30,7 +30,7 @@ GO
 USE SPVM;
 GO
 
--- we will first create the tables with no foreign key references to avoid conflicts
+-- nous allons d'abord créer les tables sans référence à des clés étrangères pour éviter les conflits
 
 DROP TABLE IF EXISTS GENRE;
 CREATE TABLE GENRE
@@ -83,7 +83,7 @@ CREATE TABLE TYPE_UNITÉ
     NOM NVARCHAR(50) NOT NULL
 );
 
--- now we can create tables that have foriegn key references to tables we've just created (a "second layer" if you will)
+-- nous pouvons maintenant créer des tables dont les clés étrangères renvoient aux tables que nous venons de créer (une « deuxième couche », si vous voulez).
 
 DROP TABLE IF EXISTS INTERVENTION;
 CREATE TABLE INTERVENTION
@@ -108,7 +108,7 @@ CREATE TABLE ADRESSE
     CODE_POSTAL NVARCHAR(50) NOT NULL
 );
 
--- a "third layer"
+-- « troisème couche »
 
 DROP TABLE IF EXISTS POSTE_DE_QUARTIER;
 CREATE TABLE POSTE_DE_QUARTIER
@@ -117,7 +117,7 @@ CREATE TABLE POSTE_DE_QUARTIER
     ID_ADRESSE INT FOREIGN KEY REFERENCES ADRESSE(ID_ADRESSE)
 );
 
--- a "fourth layer"
+-- « quatrième couche »
 
 DROP TABLE IF EXISTS COUVERTURE;
 CREATE TABLE COUVERTURE
@@ -137,7 +137,7 @@ CREATE TABLE AGENT
     PDQ INT NOT NULL FOREIGN KEY REFERENCES POSTE_DE_QUARTIER(ID_PDQ),
 );
 
--- our "fifth layer"
+-- « cinquième couche »
 
 DROP TABLE IF EXISTS INTERVENTION_AGENT;
 CREATE TABLE INTERVENTION_AGENT
@@ -155,7 +155,7 @@ CREATE TABLE DIVISION_ADMINISTRATIVE
     ID_ADRESSE INT NOT NULL FOREIGN KEY REFERENCES ADRESSE(ID_ADRESSE),
 );
 
--- "sixth layer"
+-- « sixième couche »
 
 DROP TABLE IF EXISTS QUARTIER;
 CREATE TABLE QUARTIER 
@@ -196,26 +196,24 @@ CREATE TABLE ENTITÉ
 
 
 
--- Here we will detail our triggers to ensure there is no inheritance between the other tables
--- we're concerned with the following tables: Entité, Ville, Arrondissement, Division Administrative and Quartier
--- we want to make sure that the primary key of what we're trying to insert doesn't exist elsewhere
--- if it did, our data wouldn't make sense, because of the fact that the primary key is a foreign key coming from the same source.
+-- Ici, nous détaillerons nos déclencheurs pour garantir qu'il n'y a pas d'héritage entre les autres tables.
+-- Nous nous concentrons sur les tables suivantes : Entité, Ville, Arrondissement, Division Administrative et Quartier.
+-- Nous voulons nous assurer que la clé primaire de ce que nous essayons d'insérer n'existe pas ailleurs.
+-- Si c'était le cas, nos données n'auraient pas de sens, car la clé primaire est également une clé étrangère provenant de la même source.
 
--- DIVISIONS_ADMINISTRATIVE has 3 sub-tables: ARRONDISSEMENT, VILLE and ENTITÉ
--- There is also QUARTIER which has no sub-tables.
+-- DIVISION_ADMINISTRATIVE a 3 sous-tables : ARRONDISSEMENT, VILLE et ENTITÉ.
+-- Il y a également QUARTIER, qui n'a pas de sous-tables.
 
--- All 5 of these tables share a "parent"; COUVERTURE. They get their Primary Key from it.
+-- Ces 5 tables partagent toutes un "parent" : COUVERTURE. Elles obtiennent leur clé primaire à partir de ce parent.
 
--- Thus, during our triggers, we need to make sure the PK we want to insert doesn't elsewhere.
+-- Ainsi, lors de nos déclencheurs, nous devons nous assurer que la clé primaire que nous voulons insérer n'existe pas ailleurs.
 
--- QUARTIER will check for a PK duplicate with DIVISION_ADMINISTRATIVE
--- DIVISION_ADMINISTRATIVE will check with QUARTIER
--- For the sub-tables, they will check each other as well as QUARTIER. (ex: ENTITÉ will check VILLE, ARRONDISSEMENT, and QUARTIER)
-
--- so how will we actually check it? 
+-- QUARTIER vérifiera la duplication de clé primaire avec DIVISION_ADMINISTRATIVE.
+-- DIVISION_ADMINISTRATIVE vérifiera avec QUARTIER.
+-- Les sous-tables vérifieront entre elles ainsi qu'avec QUARTIER (par exemple : ENTITÉ vérifiera VILLE, ARRONDISSEMENT et QUARTIER).
 
 -- Entité 
-*/
+
 GO
 USE SPVM;
 GO
@@ -226,7 +224,7 @@ AS
 BEGIN
     DECLARE @ID_TOCHECK NVARCHAR(30);
     DECLARE @SOURCE NVARCHAR(30);
-    DECLARE @STATUS INT; -- If 1, the insertion is flawed and we need to print our error. If 0: all good.
+    DECLARE @STATUS INT; -- Si 1, l'insertion est erronée et nous devons imprimer notre erreur. Si 0 : tout va bien.
     SET @ID_TOCHECK = (SELECT ID_ENTITÉ FROM INSERTED);
     BEGIN
     	IF EXISTS (SELECT NUM_QUARTIER FROM QUARTIER WHERE NUM_QUARTIER = @ID_TOCHECK)
@@ -266,7 +264,7 @@ AS
 BEGIN
     DECLARE @ID_TOCHECK NVARCHAR(30);
     DECLARE @SOURCE NVARCHAR(30);
-    DECLARE @STATUS INT; -- If 1, the insertion is flawed and we need to print our error. If 0: all good.
+    DECLARE @STATUS INT; 
     SET @ID_TOCHECK = (SELECT ID_VILLE FROM INSERTED);
     BEGIN
     	IF EXISTS (SELECT NUM_QUARTIER FROM QUARTIER WHERE NUM_QUARTIER = @ID_TOCHECK)
@@ -306,7 +304,7 @@ AS
 BEGIN
     DECLARE @ID_TOCHECK NVARCHAR(30);
     DECLARE @SOURCE NVARCHAR(30);
-    DECLARE @STATUS INT; -- If 1, the insertion is flawed and we need to print our error. If 0: all good.
+    DECLARE @STATUS INT;
     SET @ID_TOCHECK = (SELECT ID_ARRONDISSEMENT FROM INSERTED);
     BEGIN
     	IF EXISTS (SELECT NUM_QUARTIER FROM QUARTIER WHERE NUM_QUARTIER = @ID_TOCHECK)
@@ -345,7 +343,7 @@ AS
 BEGIN
     DECLARE @ID_TOCHECK NVARCHAR(30);
     DECLARE @SOURCE NVARCHAR(30);
-    DECLARE @STATUS INT; -- If 1, the insertion is flawed and we need to print our error. If 0: all good.
+    DECLARE @STATUS INT; 
     SET @ID_TOCHECK = (SELECT ID_DIVISION FROM INSERTED);
     BEGIN
     	IF EXISTS (SELECT NUM_QUARTIER FROM QUARTIER WHERE NUM_QUARTIER = @ID_TOCHECK)
@@ -375,7 +373,7 @@ AS
 BEGIN
     DECLARE @ID_TOCHECK NVARCHAR(30);
     DECLARE @SOURCE NVARCHAR(30);
-    DECLARE @STATUS INT; -- If 1, the insertion is flawed and we need to print our error. If 0: all good.
+    DECLARE @STATUS INT; 
     SET @ID_TOCHECK = (SELECT NUM_QUARTIER FROM INSERTED);
     BEGIN
 		IF EXISTS (SELECT ID_ENTITÉ FROM ENTITÉ WHERE ID_ENTITÉ = @ID_TOCHECK)
